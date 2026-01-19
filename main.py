@@ -141,7 +141,7 @@ def writeCSV(fullRouteList, fullDestinationList, fullQCList):
         "w",
     ) as csv:
         csv.write(
-            "Worker Group, Route Name, Filter, Pipeline, Destination Name, Destination Type"
+            "Worker Group,Route Name,Filter/Source,Pipeline,Destination Name,Destination Type"
         )
         for workerGroup in fullRouteList:
             for route in fullRouteList[workerGroup]:
