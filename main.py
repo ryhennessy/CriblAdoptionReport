@@ -1,14 +1,24 @@
+###
+# Script for gathering basic data flow information from a Cribl leader node.
+# This script expects one of two options as a command line argument (cloud or onprem).
+# Based on the command line argument provided the script will then prompt the user for
+# all the required information to login to that Cribl environment.
+# The script then query the Cribl Leader API for infomration about the routing tables
+# across all the different worker groups.
+# The output is a CSV with basic information about data flows through the different
+# worker groups
+#
+# For more infomration: https://github.com/ryhennessy/CriblAdoptionReport
+# Author: Ryan Hennessy (rhennessy@cribl.io)
+###
+
+
 #!/usr/bin/python3
 
 import sys
-import os
 import requests
 import getpass
-import csv
-
-# import datetime
 import urllib3
-# from requests.exceptions import RequestException
 
 # Added to remove any warning messages from urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -43,10 +53,10 @@ def cloudLogin(criblHeaders):
     loginData["audience"] = "https://api.cribl.cloud"
     loginData["grant_type"] = "client_credentials"
     criblUrl = input(
-        "Provide Cloud URL (Format of https://<workspaceName>.<organizationId>.cribl.cloud): "
+        "Provide Cloud URL (Format of https://<workspaceName>-<organizationId>.cribl.cloud): "
     )
     loginData["client_id"] = input("Enter Client ID: ")
-    loginData["client_secret"] = input("Enter Client Secret (Will not echo out): ")
+    loginData["client_secret"] = getpass.getpass("Enter Client Secret: ")
 
     try:
         resp = requests.post(criblAuthUrl, json=loginData, headers=criblHeaders)
@@ -75,33 +85,45 @@ def getWorkerGroups(criblHeaders, criblUrl):
         sys.exit(1)
 
 
-# import csv
-#
-# data_dict = [
-#     {"Name": "John", "Age": "25", "Country": "USA"},
-#     {"Name": "Sarah", "Age": "30", "Country": "Canada"}
-# ]
-# fieldnames = ["Name", "Age", "Country"]
-#
-# with open('output_dict.csv', 'w', newline='') as file:
-#     writer = csv.DictWriter(file, fieldnames=fieldnames)
-#     writer.writeheader() # Write the header row
-#     writer.writerows(data_dict) # Write the data rows
+def getDestinations(criblHeaders, criblWorkerGroups, criblUrl):
+    fullDestinationList = {}
+    for workerGroup in criblWorkerGroups:
+        destUrl = f"{criblUrl}/api/v1/m/{workerGroup}/system/outputs"
+        resp = requests.get(destUrl, headers=criblHeaders)
+        fullDestinationList[workerGroup] = {}
+        if resp.status_code == 200:
+            for dest in resp.json()["items"]:
+                destName = dest["id"]
+                destType = dest["type"]
+                fullDestinationList[workerGroup][destName] = destType
+    return fullDestinationList
 
 
-def writeRoutes(criblHeaders, criblWorkerGroups, criblUrl):
-    fieldnames = ["name", "filter", "pipeline", "output", "description"]
-    with open("routes.csv", "a", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-        if os.stat("routes.csv").st_size == 0:
-            writer.writeheader()
-        for workerGroup in criblWorkerGroups:
-            routeUrl = f"{criblUrl}/api/v1/m/{workerGroup}/routes"
-            resp = requests.get(routeUrl, headers=criblHeaders)
-            if resp.status_code == 200:
-                resp = resp.json()
-                for route in resp:
-                    writer.writerow(route)
+def getRoutes(criblHeaders, criblWorkerGroups, criblUrl):
+    fullRouteList = {}
+    for workerGroup in criblWorkerGroups:
+        routeUrl = f"{criblUrl}/api/v1/m/{workerGroup}/routes"
+        resp = requests.get(routeUrl, headers=criblHeaders)
+        if resp.status_code == 200:
+            fullRouteList[workerGroup] = resp.json()["items"][0]["routes"]
+    return fullRouteList
+
+
+def writeCSV(fullRouteList, fullDestinationList):
+    with open(
+        "dataflow.csv",
+        "w",
+    ) as csv:
+        csv.write(
+            "Worker Group, Route Name, Filter, Pipeline, Destination Name, Destination Type"
+        )
+        for workerGroup in fullRouteList:
+            for route in fullRouteList[workerGroup]:
+                if "disabled" in route and not route["disabled"]:
+                    destType = fullDestinationList[workerGroup][route["output"]]
+                    csv.write(
+                        f"\n{workerGroup},{route['name']},{route['filter']},{route['pipeline']},{route['output']},{destType}"
+                    )
     return
 
 
@@ -123,9 +145,10 @@ def main():
     criblHeaders["Authorization"] = "Bearer " + criblToken
 
     criblWorkerGroups = getWorkerGroups(criblHeaders, criblUrl)
-    print(criblWorkerGroups)
-    print(f"AuthToken: {criblToken}")
-    # writeRoutes(criblHeaders, criblWorkerGroups, criblUrl)
+    fullDestinationList = getDestinations(criblHeaders, criblWorkerGroups, criblUrl)
+    fullRouteList = getRoutes(criblHeaders, criblWorkerGroups, criblUrl)
+    writeCSV(fullRouteList, fullDestinationList)
+    print("Wrote output file dataflow.csv")
 
 
 if __name__ == "__main__":
