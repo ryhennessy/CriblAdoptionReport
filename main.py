@@ -174,12 +174,16 @@ def main():
 
     criblHeaders["Authorization"] = "Bearer " + criblToken
 
+    print("* Getting Worker Group Information *")
     criblWorkerGroups = getWorkerGroups(criblHeaders, criblUrl)
+    print("* Getting List of Destination Types *")
     fullDestinationList = getDestinations(criblHeaders, criblWorkerGroups, criblUrl)
+    print("* Gathering Information on the Cribl Data Routes *")
     fullRouteList = getRoutes(criblHeaders, criblWorkerGroups, criblUrl)
+    print("* Gathering Information on the Cribl QuickConnect *")
     fullQCList = getSources(criblHeaders, criblWorkerGroups, criblUrl)
+    print("* Compiling CSV Output *")
     writeCSV(fullRouteList, fullDestinationList, fullQCList)
-    print("Wrote output file dataflow.csv")
 
 
 if __name__ == "__main__":
