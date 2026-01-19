@@ -152,7 +152,7 @@ def writeCSV(fullRouteList, fullDestinationList, fullQCList):
                     )
         for quickConnect in fullQCList:
             csv.write(
-                f"\n{quickConnect['workergroup']}, Quick Connect, {quickConnect['name']}:{quickConnect['type']}, {quickConnect['pipeline']}, {quickConnect['output']}, Validate Destination Type"
+                f"\n{quickConnect['workergroup']},Quick Connect,{quickConnect['name']}:{quickConnect['type']},{quickConnect['pipeline']},{quickConnect['output']},Validate Destination Type"
             )
     return
 
