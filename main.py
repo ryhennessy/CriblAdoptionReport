@@ -85,6 +85,32 @@ def getWorkerGroups(criblHeaders, criblUrl):
         sys.exit(1)
 
 
+def getSources(criblHeaders, criblWorkerGroups, criblUrl):
+    filteredSourceList = []
+    for workerGroup in criblWorkerGroups:
+        sourceUrl = f"{criblUrl}/api/v1/m/{workerGroup}/system/inputs"
+        resp = requests.get(sourceUrl, headers=criblHeaders)
+        if resp.status_code == 200:
+            for source in resp.json()["items"]:
+                if "connections" in source:
+                    for connection in source["connections"]:
+                        if "pipeline" not in connection:
+                            criblPipeline = "passthru"
+                        else:
+                            criblPipeline = connection["pipeline"]
+                        criblDestination = connection["output"]
+                        filteredSourceList.append(
+                            {
+                                "name": source["id"],
+                                "type": source["type"],
+                                "workergroup": workerGroup,
+                                "pipeline": criblPipeline,
+                                "output": criblDestination,
+                            }
+                        )
+    return filteredSourceList
+
+
 def getDestinations(criblHeaders, criblWorkerGroups, criblUrl):
     fullDestinationList = {}
     for workerGroup in criblWorkerGroups:
@@ -109,7 +135,7 @@ def getRoutes(criblHeaders, criblWorkerGroups, criblUrl):
     return fullRouteList
 
 
-def writeCSV(fullRouteList, fullDestinationList):
+def writeCSV(fullRouteList, fullDestinationList, fullQCList):
     with open(
         "dataflow.csv",
         "w",
@@ -124,6 +150,13 @@ def writeCSV(fullRouteList, fullDestinationList):
                     csv.write(
                         f"\n{workerGroup},{route['name']},{route['filter']},{route['pipeline']},{route['output']},{destType}"
                     )
+        for quickConnect in fullQCList:
+            # destType = fullDestinationList[quickConnect["workergroup"]][
+            #     quickConnect["output"]
+            # ]
+            csv.write(
+                f"\n{quickConnect['workergroup']}, Quick Connect, {quickConnect['name']}:{quickConnect['type']}, {quickConnect['pipeline']}, {quickConnect['output']}, destType"
+            )
     return
 
 
@@ -147,7 +180,8 @@ def main():
     criblWorkerGroups = getWorkerGroups(criblHeaders, criblUrl)
     fullDestinationList = getDestinations(criblHeaders, criblWorkerGroups, criblUrl)
     fullRouteList = getRoutes(criblHeaders, criblWorkerGroups, criblUrl)
-    writeCSV(fullRouteList, fullDestinationList)
+    fullQCList = getSources(criblHeaders, criblWorkerGroups, criblUrl)
+    writeCSV(fullRouteList, fullDestinationList, fullQCList)
     print("Wrote output file dataflow.csv")
 
 
