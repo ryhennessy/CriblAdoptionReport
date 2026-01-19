@@ -5,7 +5,7 @@ This Python script gathers deployment data from a Cribl Leader node to provide a
 ## Features
 
 * Supports both **Cribl Cloud** and **On-Prem** deployments.
-* Automatically discovers all active Worker Groups (excluding Fleets and Search nodes).
+* Automatically discovers all active Stream Worker Groups.
 * Maps Routes to their respective Pipelines and Destinations.
 * Exports data into a structured CSV for easy reporting and analysis.
 
@@ -81,7 +81,6 @@ Upon successful execution, the script generates a file named **`dataflow.csv`** 
 * **Login Failed:** * **On-Prem:** Verify that your username and password are correct and that the user has API permissions.
 * **Cloud:** Double-check that your Client ID and Client Secret are active and have the "Cribl Admin" or "Read-only" role assigned.
 
-
 * **SSL Warnings:** The script is configured to bypass SSL verification for on-premise environments with self-signed certificates. You may see a brief warning in the console, but the script will continue to run.
 * **No Worker Groups Found:** Ensure the account used has permission to view worker groups at the Master/Leader level.
 
@@ -90,4 +89,3 @@ Upon successful execution, the script generates a file named **`dataflow.csv`** 
 ## Author
 
 **Ryan Hennessy** – [rhennessy@cribl.io](mailto:rhennessy@cribl.io)
-
