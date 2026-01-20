@@ -82,7 +82,7 @@ Upon successful execution, the script generates a file named **`dataflow.csv`** 
 * **Cloud:** Double-check that your Client ID and Client Secret are active and have the "Cribl Admin" or "Read-only" role assigned.
 
 * **SSL Warnings:** The script is configured to bypass SSL verification for on-premise environments with self-signed certificates. You may see a brief warning in the console, but the script will continue to run.
-* **No Worker Groups Found:** Ensure the account used has permission to view worker groups at the Master/Leader level.
+* **No Worker Groups Found:** Ensure the account used has permission to view worker groups at the Leader/Org level.
 
 ---
 
